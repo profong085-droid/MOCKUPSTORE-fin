@@ -8,6 +8,54 @@ const app = express();
 
 // Middleware
 app.use(cors());
+const crypto = require('crypto');
+
+// Webhook route must use raw body parser for signature verification BEFORE express.json()
+app.post('/api/webhooks/payment', express.raw({ type: 'application/json' }), (req, res) => {
+  try {
+    const signatureHeader = req.headers['x-signature'];
+    const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET || '';
+
+    // Verify signature
+    const hmac = crypto.createHmac('sha256', secret);
+    const digest = Buffer.from(hmac.update(req.body).digest('hex'), 'utf8');
+    const signature = Buffer.from(signatureHeader || '', 'utf8');
+
+    if (digest.length !== signature.length || !crypto.timingSafeEqual(digest, signature)) {
+      console.error("❌ Webhook Signature Invalid");
+      return res.status(403).send('Invalid signature');
+    }
+
+    const payload = JSON.parse(req.body.toString());
+    const eventName = payload?.meta?.event_name;
+
+    if (eventName === 'order_created') {
+      const order = payload.data.attributes;
+      const customerEmail = order.user_email;
+      const totalAmount = order.total / 100;
+      const orderNumber = order.identifier || 'LS-' + Math.floor(Math.random() * 90000);
+      
+      console.log(`✅ [WEBHOOK] ទទួលបានការទូទាត់ប្រាក់ពី: ${customerEmail} ចំនួន $${totalAmount}`);
+      
+      // Save order to Database
+      db.run(
+        `INSERT INTO orders (orderNumber, totalAmount, paymentMethod, paymentStatus, itemsData, userEmail) VALUES (?, ?, ?, ?, ?, ?)`,
+        [orderNumber, totalAmount, 'card', 'success', JSON.stringify([{ product: { name: 'Mockup Item' }, quantity: 1 }]), customerEmail],
+        function(err) {
+          if (err) console.error("❌ Database Insert Error (Webhook):", err.message);
+          else console.log(`✅ Order ${orderNumber} saved via Webhook`);
+        }
+      );
+    }
+
+    res.status(200).send('Webhook received successfully');
+  } catch (error) {
+    console.error("❌ Webhook Error:", error);
+    res.status(500).send('Webhook error');
+  }
+});
+
+// For all other routes, parse JSON bodies
 app.use(express.json());
 
 /**
@@ -127,44 +175,7 @@ app.get('/api/orders', (req, res) => {
   });
 });
 
-const crypto = require('crypto');
-const LEMON_SQUEEZY_WEBHOOK_SECRET = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET || 'your_webhook_secret_here';
-
-/**
- * Webhook endpoint សម្រាប់ទទួលដំណឹងពី Lemon Squeezy ពេលលុយចូលគណនីពិត
- * (ត្រូវដាក់ឲ្យដំណើរការមុន express.json ប្រសិនបើប្រើ express.raw ប៉ុន្តែនៅទីនេះយើងប្រើ req.body ធម្មតាជាឧទាហរណ៍)
- */
-app.post('/api/webhooks/payment', (req, res) => {
-  try {
-    const signature = req.headers['x-signature'];
-    // សម្រាប់សុវត្ថិភាព ត្រូវប្រើ express.raw() ដើម្បី verify signature 
-    // ខាងក្រោមនេះជា Logic ឧទាហរណ៍៖
-    
-    const data = req.body;
-    const eventName = data?.meta?.event_name;
-
-    if (eventName === 'order_created') {
-      const order = data.data.attributes;
-      const customerEmail = order.user_email;
-      const totalAmount = order.total / 100; // Lemon Squeezy គិតជា Cents
-      
-      console.log(`✅ [WEBHOOK] ទទួលបានការទូទាត់ប្រាក់ពិតពី: ${customerEmail} ចំនួន $${totalAmount}`);
-      
-      // Update Database របស់អ្នកនៅទីនេះ
-      /*
-      db.run(
-        `UPDATE orders SET paymentStatus = 'success' WHERE userEmail = ?`,
-        [customerEmail]
-      );
-      */
-    }
-
-    res.status(200).send('Webhook received successfully');
-  } catch (error) {
-    console.error("❌ Webhook Error:", error);
-    res.status(500).send('Webhook error');
-  }
-});
+// Old webhook block removed because it's moved above express.json()
 
 /**
  * Endpoint ឧទាហរណ៍ សម្រាប់បង្កើត Session/Transaction ជាមួយ Lemon Squeezy តាមរយៈ Backend (API Route)
@@ -174,8 +185,9 @@ app.post('/api/checkout-lemon', async (req, res) => {
   try {
     const { items, userEmail } = req.body;
     const API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
-    const STORE_ID = 'your_store_id_here';
-    const VARIANT_ID = 'your_variant_id_here'; // ផលិតផលរបស់អ្នក
+    // Note: Store ID and Variant ID must be provided via env vars in Vercel
+    const STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
+    const VARIANT_ID = process.env.LEMON_SQUEEZY_VARIANT_ID;
 
     const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
       method: 'POST',

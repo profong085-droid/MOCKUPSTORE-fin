@@ -331,9 +331,25 @@ export default function App() {
     setIsProcessing(true);
     try {
       if (paymentMethod === "card") {
-        // Lemon Squeezy flow
-        const checkoutUrl = "https://mockupstore.lemonsqueezy.com/checkout/buy/2ee101dc-eaf1-4a08-96dd-571966116f2f?embed=1&dark=1";
+        // Lemon Squeezy flow (Dynamic via Backend)
+        const response = await fetch("/api/checkout-lemon", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: cart,
+            total: cartTotal,
+            userEmail: user?.email
+          })
+        });
+        const result = await response.json();
+        
+        if (!result.success) {
+          alert("បរាជ័យក្នុងការបង្កើត Link ទូទាត់ប្រាក់៖ " + (result.message || "Unknown Error"));
+          setIsProcessing(false);
+          return;
+        }
 
+        const checkoutUrl = result.url;
 
         // Ensure Lemon Squeezy is initialized
         // @ts-ignore
