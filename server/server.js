@@ -580,7 +580,11 @@ app.get('/admin', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3004;
-app.listen(PORT, () => {
-  console.log(`✅ Backend Payment API running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 3004;
+  app.listen(PORT, () => {
+    console.log(`✅ Backend Payment API running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
