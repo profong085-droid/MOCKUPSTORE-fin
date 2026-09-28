@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-primary: #ff3000;
+  --color-primary-foreground: #ffffff;
+  --color-card: var(--card);
+  --color-card-foreground: var(--fg);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-fg);
+  --color-accent: #ecff00;
+  --color-accent-foreground: #080808;
+
+  --font-heading: 'Barlow Condensed', sans-serif;
+  --font-sans: 'Outfit', sans-serif;
+}
+
+:root {
+  /* Default to dark mode variables */
+  --bg: #080808;
+  --fg: #f5f2ee;
+  --card: #121212;
+  --border: #222222;
+  --muted: #1a1a1a;
+  --muted-fg: #999999;
+}
+
+:root.light {
+  /* Light mode variables */
+  --bg: #f9f9f9;
+  --fg: #111111;
+  --card: #ffffff;
+  --border: #e5e5e5;
+  --muted: #f0f0f0;
+  --muted-fg: #666666;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: 'Outfit', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+input:focus {
+  outline: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

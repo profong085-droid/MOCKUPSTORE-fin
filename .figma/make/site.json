@@ -1,0 +1,10 @@
+{
+  "description": "This e-commerce platform offers a visually striking experience for purchasing mockup jerseys, featuring intuitive navigation and a streamlined checkout process.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
